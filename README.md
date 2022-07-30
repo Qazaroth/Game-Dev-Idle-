@@ -1,2 +1,2 @@
-# Game-Dev-Idle-
-Just an attempt to make a cli Game Dev idle game.
+# Game Dev Idle
+Just an attempt to make a CLI Game Dev idle game.
