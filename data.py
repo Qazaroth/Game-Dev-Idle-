@@ -41,6 +41,9 @@ class Data:
     def getLastModifiedDate(self):
         return self.__lastModified
 
+    def setDataID(self, id):
+        self.__id = id
+
     def setPlayerName(self, playerName):
         self.__plrName = playerName
 

@@ -1,11 +1,14 @@
 from pathlib import Path
 from data import Data
+
 from datetime import datetime
 from dateutil import parser
+
 from os import listdir
 from os.path import isfile, join
-
 import os
+
+import time
 
 cashPerGame = 10
 cashPerMin = 5
@@ -76,15 +79,40 @@ def newGame():
                     print("Data saved.")
 
 def loadGame():
+    global currGameData
+
     saveFiles = [f for f in listdir(saveFolder) if isfile(join(saveFolder, f))]
-    #temporaryData = []
+    savesData = []
+    print("Format: \"Save #Number - Player Name [Company Name]\"")
     for f in saveFiles:
         tempData = Data()
+        tempData.setDataID(saveFiles.index(f)+1)
         tempData.importFromFile("{}/{}".format(saveFolder, f))
-        #temporaryData.append(tempData)
+        savesData.append(tempData)
         print("Save #{} - {} [{}]".format(saveFiles.index(f), tempData.getPlayerName(), tempData.getCompanyName()))
 
-    print("Feature not fully implemented...")
+    saveChoice = input("(Number only) Which save would you like to choose? ")
+
+    try:
+        saveChoice = int(saveChoice)
+    except:
+        saveChoice = -1
+
+    if saveChoice >= 0 and saveChoice < len(saveFiles):
+        saveFile = saveFiles[saveChoice] or None
+        print("Attempting to load Save #{}...".format(saveChoice))
+        if saveFile is not None:
+            saveData = savesData[saveChoice] or None
+            currGameData = saveData
+            print("Successfully loaded Save #{}".format(saveChoice))
+            time.sleep(1.5)
+            newGame()
+        else:
+            print("Unable to load Save #{}!!! Possibly a corrupted save?".format(saveChoice))
+    else:
+        print("Invalid save file chosen.")
+
+    #print("Feature not fully implemented...")
 
 def main():
     print(separator)
