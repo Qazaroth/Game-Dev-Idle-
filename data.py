@@ -1,9 +1,11 @@
 from datetime import datetime
+from dateutil import parser
+from pathlib import Path
 
 class Data:
     dataCount = 0
 
-    def __init__(self, playerName, companyName, cash : float=0.0, noOfGamesMade=0, noOfDevsHired=0, firstCreationDate=datetime.now(), lastModifiedDate=datetime.now()) -> None:
+    def __init__(self, playerName="", companyName="", cash : float=0.0, noOfGamesMade=0, noOfDevsHired=0, firstCreationDate=datetime.now(), lastModifiedDate=datetime.now()) -> None:
         self.__id = Data.dataCount + 1
         self.__plrName = playerName
         self.__companyName = companyName
@@ -56,6 +58,24 @@ class Data:
 
     def updateModifiedDate(self):
         self.__lastModified = datetime.now()
+
+    def importFromFile(self, file):
+        f = Path(file)
+
+        if f.exists():
+            f = open(file, "r")
+            fileData = f.read()
+            f.close()
+
+            fileDataList = fileData.split("||")
+            
+            self.__plrName = fileDataList[0]
+            self.__companyName = fileDataList[1]
+            self.__cash = float(fileDataList[2])
+            self.__noOfGames = int(fileDataList[3])
+            self.__noOfDevs = int(fileDataList[4])
+            self.__firstCreated = parser.parse(fileDataList[5])
+            self.__lastModified = datetime.now()
 
     def __repr__(self) -> str:
         return "{}||{}||{}||{}||{}||{}||{}".format(

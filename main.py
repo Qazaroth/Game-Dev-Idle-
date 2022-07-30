@@ -68,6 +68,7 @@ def newGame():
             if toSave in ["y", "n"]:
                 if toSave == "y":
                     saveData = currGameData
+                    saveData.updateModifiedDate()
                     fileName = "{}.saveDat".format(saveData.getDataID())
                     f = open("saves/{}".format(fileName), "w")
                     f.write(saveData.__str__())
@@ -75,7 +76,15 @@ def newGame():
                     print("Data saved.")
 
 def loadGame():
-    print("Feature not implemented...")
+    saveFiles = [f for f in listdir(saveFolder) if isfile(join(saveFolder, f))]
+    #temporaryData = []
+    for f in saveFiles:
+        tempData = Data()
+        tempData.importFromFile("{}/{}".format(saveFolder, f))
+        #temporaryData.append(tempData)
+        print("Save #{} - {} [{}]".format(saveFiles.index(f), tempData.getPlayerName(), tempData.getCompanyName()))
+
+    print("Feature not fully implemented...")
 
 def main():
     print(separator)
