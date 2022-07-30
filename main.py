@@ -61,6 +61,7 @@ def newGame():
         if continueQn == "y":
             newGame()
         else:
+            print("Data will be lost if you do not save!")
             toSave = input("(Y/N) Would you like to save? ")
             toSave = toSave.lower()
 
