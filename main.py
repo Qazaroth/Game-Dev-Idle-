@@ -1,3 +1,11 @@
+import subprocess, sys
+
+try:
+    from InquirerPy import inquirer
+except ModuleNotFoundError:
+    subprocess.run(["pip install inquirerpy"])
+    sys.exit(0)
+
 from pathlib import Path
 from data import Data
 
@@ -10,6 +18,9 @@ import os
 
 import time
 
+baseDevCost = 100
+devCost = baseDevCost
+devCostMulti = 1.5 # 1.5 * baseDevCost * noOfDevs (0) [Lowest = 1]
 cashPerGame = 10
 cashPerMin = 5
 rebirthMulti = 1.0
@@ -35,6 +46,41 @@ def clear():
         command = "cls"
 
     os.system(command)
+
+def printProgressBar(iteration, total, prefix="", suffix="", decimals=1, length=100, fill = "█", printEnd = "\r"):
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration/float(total)))
+    filledLength = int(length * iteration // total)
+    bar = fill * filledLength + "-" * (length - filledLength)
+    print("\r{} |{}| {}% {}".format(prefix, bar, percent, suffix), end=printEnd)
+    if iteration == total:
+        print()
+
+def doNothing():
+    print("Doing nothing...")
+
+def developAGame():
+    items = list(range(0, 100))
+    l = len(items)
+    progressBarPrefix = " Game Development Progress:"
+    gameName = inquirer.text(
+        message="What do you want the name of your game to be?"
+    ).execute()
+    print(gameName)
+
+    printProgressBar(0, l, progressBarPrefix, "Complete", length=50)
+    for i, item in enumerate(items):
+        time.sleep(0.1)
+        printProgressBar(i + 1, l, progressBarPrefix, "Complete", length=50)
+    #print("Feature not implemented yet...")
+
+def hireDev():
+    print("Feature not implemented yet...")
+
+actions = {
+    "0": doNothing,
+    "1": developAGame,
+    "2": hireDev
+}
 
 def newGame():
     global currGameData
@@ -62,7 +108,26 @@ def newGame():
 
     if continueQn in ["y", "n"]:
         if continueQn == "y":
-            newGame()
+            print(separator)
+            print("0 - Do nothing")
+            print("1 - Develop a game")
+            print("2 - Hire more developers")
+            actionChoice = inquirer.text(
+                message="(Numbers only) What do you want to do?"
+            ).execute()
+            
+            try:
+                actionChoice = int(actionChoice)
+            except:
+                actionChoice = 0
+            
+            action = actions.get(str(actionChoice))
+
+            if action is not None:
+                action()
+            else:
+                print("Action #{} has either not been properly implemented or it's invalid.".format(actionChoice))
+            # newGame()
         else:
             print("Data will be lost if you do not save!")
             toSave = input("(Y/N) Would you like to save? ")
