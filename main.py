@@ -8,6 +8,7 @@ except ModuleNotFoundError:
 
 from pathlib import Path
 from data import Data
+from games import Games
 
 from datetime import datetime
 from dateutil import parser
@@ -16,7 +17,19 @@ from os import listdir
 from os.path import isfile, join
 import os
 
-import time
+import time, threading, shelve
+
+db = shelve.open("database.db", "c")
+gameData = []
+
+try:
+    gameData = db["GameData"]
+except:
+    db["GameData"] = gameData
+finally:
+    db.close()
+
+exitGame = False
 
 baseDevCost = 100
 devCost = baseDevCost
@@ -38,7 +51,7 @@ saveSeparator = "||"
 title = "Game Dev Idle"
 newGameTitle = "New Game"
 
-currGameData = None
+currGameData : Data = None
 
 def clear():
     command = "clear"
@@ -58,6 +71,8 @@ def printProgressBar(iteration, total, prefix="", suffix="", decimals=1, length=
 def doNothing():
     print("Doing nothing...")
 
+    newGame()
+
 def developAGame():
     items = list(range(0, 100))
     l = len(items)
@@ -65,12 +80,17 @@ def developAGame():
     gameName = inquirer.text(
         message="What do you want the name of your game to be?"
     ).execute()
-    print(gameName)
+    #print(gameName)
+    g = Games(gameName)
 
+    #print(l)
     printProgressBar(0, l, progressBarPrefix, "Complete", length=50)
     for i, item in enumerate(items):
         time.sleep(0.1)
         printProgressBar(i + 1, l, progressBarPrefix, "Complete", length=50)
+    currGameData.addGame(g)
+
+    newGame()
     #print("Feature not implemented yet...")
 
 def hireDev():
@@ -83,7 +103,16 @@ actions = {
 }
 
 def newGame():
-    global currGameData
+    global currGameData, gameData
+
+    db = shelve.open("database.db", "r")
+    try:
+        gameData = db["GameData"]
+    except:
+        gameData = []
+    finally:
+        db.close()
+
     clear()
     print(separator)
     if currGameData is None:
@@ -100,6 +129,7 @@ def newGame():
     
     print("Player Name: {}".format(currGameData.getPlayerName()))
     print("Company Name: {}".format(currGameData.getCompanyName()))
+    print("Cash: ${}".format(currGameData.getCash()))
     print("Number of Games Developed: {}".format(currGameData.getNumberOfGamesMade()))
     print("Number of Developers Hired: {}".format(currGameData.getNumberOfDevsHired()))
 
@@ -137,72 +167,128 @@ def newGame():
                 if toSave == "y":
                     saveData = currGameData
                     saveData.updateModifiedDate()
-                    fileName = "{}.saveDat".format(saveData.getDataID())
-                    f = open("saves/{}".format(fileName), "w")
-                    f.write(saveData.__str__())
-                    f.close()
+
+                    db = shelve.open("database.db", "w")
+                    try:
+                        gameData = db["GameData"]
+                    except:
+                        gameData = []
+                    finally:
+                        try:
+                            gameData[saveData.getDataID()] = saveData
+                        except:
+                            gameData.append(saveData)
+                            
+                        db["GameData"] = gameData
+                        db.close()
+
                     print("Data saved.")
 
+            currGameData = None
+
 def loadGame():
-    global currGameData
+    global currGameData, gameData
 
-    saveFiles = [f for f in listdir(saveFolder) if isfile(join(saveFolder, f))]
-    savesData = []
-    print("Format: \"Save #Number - Player Name [Company Name]\"")
-    for f in saveFiles:
-        tempData = Data()
-        tempData.setDataID(saveFiles.index(f)+1)
-        tempData.importFromFile("{}/{}".format(saveFolder, f))
-        savesData.append(tempData)
-        print("Save #{} - {} [{}]".format(saveFiles.index(f), tempData.getPlayerName(), tempData.getCompanyName()))
-
-    saveChoice = input("(Number only) Which save would you like to choose? ")
-
+    db = shelve.open("database.db", "r")
     try:
-        saveChoice = int(saveChoice)
+        gameData = db["GameData"]
     except:
-        saveChoice = -1
+        gameData = []
+    finally:
+        db.close()
+    
+    if len(gameData) > 0:
+        print("Format: \"Save #Number - Player Name [Company Name]\"")
+        for tempData in gameData:
+            print("Save #{} - {} [{}]".format(
+                gameData.index(tempData), 
+                tempData.getPlayerName(), 
+                tempData.getCompanyName()
+            ))
 
-    if saveChoice >= 0 and saveChoice < len(saveFiles):
-        saveFile = saveFiles[saveChoice] or None
-        print("Attempting to load Save #{}...".format(saveChoice))
-        if saveFile is not None:
-            saveData = savesData[saveChoice] or None
-            currGameData = saveData
-            print("Successfully loaded Save #{}".format(saveChoice))
-            time.sleep(1.5)
-            newGame()
+        saveChoice = input("(Number only) Which save would you like to choose? ")
+
+        try:
+            saveChoice = int(saveChoice)
+        except:
+            saveChoice = -1
+
+        if saveChoice >= 0 and saveChoice < len(gameData):
+            saveFile = gameData[saveChoice] or None
+            print("Attempting to load Save #{}...".format(saveChoice))
+            if saveFile is not None:
+                saveData = gameData[saveChoice] or None
+                currGameData = saveData
+                print("Successfully loaded Save #{}".format(saveChoice))
+                time.sleep(1.5)
+                newGame()
+            else:
+                print("Unable to load Save #{}!!! Possibly a corrupted save?".format(saveChoice))
         else:
-            print("Unable to load Save #{}!!! Possibly a corrupted save?".format(saveChoice))
+            print("Invalid save file chosen.")
     else:
-        print("Invalid save file chosen.")
-
+        print("No save file available.")
     #print("Feature not fully implemented...")
 
-def main():
-    print(separator)
-    length = int(len(separator)/2-len(title)/2)
-    print("{}{}".format(" "*length, title))
-    print(separator)
-    print("1 - New game")
-    print("2 - Load game")
-    print("3 - Exit")
-    choice = input("(Numbers only) What do you want to do? ")
+def mainLoop():
+    global exitGame
 
-    try:
-        choice = int(choice)
-    except:
-        choice = 3
+    while not exitGame:
+        print(separator)
+        length = int(len(separator)/2-len(title)/2)
+        print("{}{}".format(" "*length, title))
+        print(separator)
+        print("1 - New game")
+        print("2 - Load game")
+        print("3 - Exit")
+        choice = input("(Numbers only) What do you want to do? ")
 
-    if choice in [1,2,3]:
-        if choice == 1:
-            newGame()
-        elif choice == 2:
-            loadGame()
+        try:
+            choice = int(choice)
+        except:
+            choice = 3
+
+        if choice in [1,2,3]:
+            if choice == 1:
+                newGame()
+            elif choice == 2:
+                loadGame()
+            else:
+                print("Exiting...")
+                exitGame = True
         else:
-            print("Exiting...")
-            exit(0)
-    else:
-        print("Invalid choice")
+            print("Invalid choice")
 
-main()
+def bgLoop():
+    global exitGame
+
+    while not exitGame:
+        if exitGame:
+                break
+        for i in range(30):
+            if exitGame:
+                break
+
+            time.sleep(1)
+
+            if i == 59 and currGameData is not None:
+                noOfGames = currGameData.getNumberOfGamesMade()
+                cash = currGameData.getCash()
+
+                newCash = cash + (noOfGames * cashPerGame) + cashPerMin
+                
+                currGameData.setCash(newCash)
+
+threads = []
+
+mainThread = threading.Thread(target=mainLoop)
+bgThread = threading.Thread(target=bgLoop)
+
+threads.append(mainThread)
+threads.append(bgThread)
+
+for t in threads:
+    t.start()
+
+for t in threads:
+    t.join()

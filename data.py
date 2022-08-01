@@ -2,15 +2,17 @@ from datetime import datetime
 from dateutil import parser
 from pathlib import Path
 
+from games import Games
+
 class Data:
     dataCount = 0
 
-    def __init__(self, playerName="", companyName="", cash : float=0.0, noOfGamesMade=0, noOfDevsHired=0, firstCreationDate=datetime.now(), lastModifiedDate=datetime.now()) -> None:
+    def __init__(self, playerName="", companyName="", cash : float=0.0, gamesMade=[], noOfDevsHired=0, firstCreationDate=datetime.now(), lastModifiedDate=datetime.now()) -> None:
         self.__id = Data.dataCount + 1
         self.__plrName = playerName
         self.__companyName = companyName
         self.__cash : float = cash
-        self.__noOfGames = noOfGamesMade
+        self.__gamesMade = gamesMade
         self.__noOfDevs = noOfDevsHired
         self.__firstCreated = firstCreationDate
         self.__lastModified = lastModifiedDate
@@ -30,7 +32,7 @@ class Data:
         return self.__cash
 
     def getNumberOfGamesMade(self):
-        return self.__noOfGames
+        return len(self.__gamesMade)
 
     def getNumberOfDevsHired(self):
         return self.__noOfDevs
@@ -53,8 +55,8 @@ class Data:
     def setCash(self, cash : float):
         self.__cash = cash
 
-    def setNumberOfGamesMade(self, noOfGamesMade):
-        self.__noOfGames = noOfGamesMade
+    def addGame(self, game : Games):
+        self.__gamesMade.append(game)
 
     def setNumberOfDevsHired(self, noOfDevsHired):
         self.__noOfDevs = noOfDevsHired
