@@ -19,7 +19,10 @@ import os
 
 import time, threading, shelve
 
-db = shelve.open("database.db", "c")
+saveFolder = os.getcwd() + "/saves"
+dbFile = saveFolder + "/database.db"
+
+db = shelve.open(dbFile, "c")
 gameData = []
 
 try:
@@ -37,7 +40,7 @@ devCostMulti = 1.5 # 1.5 * baseDevCost * noOfDevs (0) [Lowest = 1]
 cashPerGame = 10
 cashPerMin = 5
 rebirthMulti = 1.0
-saveFolder = os.getcwd() + "\saves"
+
 
 savePath = Path(saveFolder)
 if not savePath.exists():
@@ -105,7 +108,7 @@ actions = {
 def newGame():
     global currGameData, gameData
 
-    db = shelve.open("database.db", "r")
+    db = shelve.open(dbFile, "r")
     try:
         gameData = db["GameData"]
     except:
@@ -168,7 +171,7 @@ def newGame():
                     saveData = currGameData
                     saveData.updateModifiedDate()
 
-                    db = shelve.open("database.db", "w")
+                    db = shelve.open(dbFile, "w")
                     try:
                         gameData = db["GameData"]
                     except:
@@ -189,7 +192,7 @@ def newGame():
 def loadGame():
     global currGameData, gameData
 
-    db = shelve.open("database.db", "r")
+    db = shelve.open(dbFile, "r")
     try:
         gameData = db["GameData"]
     except:
@@ -264,7 +267,8 @@ def bgLoop():
 
     while not exitGame:
         if exitGame:
-                break
+            break
+        
         for i in range(30):
             if exitGame:
                 break
