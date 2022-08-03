@@ -8,7 +8,7 @@ class Data:
     dataCount = 0
 
     def __init__(self, playerName="", companyName="", cash : float=0.0, gamesMade=[], noOfDevsHired=0, firstCreationDate=datetime.now(), lastModifiedDate=datetime.now()) -> None:
-        self.__id = Data.dataCount + 1
+        self.__id = Data.dataCount
         self.__plrName = playerName
         self.__companyName = companyName
         self.__cash : float = cash

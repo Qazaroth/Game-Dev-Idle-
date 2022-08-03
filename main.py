@@ -13,6 +13,8 @@ from games import Games
 from datetime import datetime
 from dateutil import parser
 
+from utils import clear, printProgressBar
+
 from os import listdir
 from os.path import isfile, join
 import os
@@ -30,6 +32,8 @@ try:
 except:
     db["GameData"] = gameData
 finally:
+    Data.dataCount = len(gameData)
+    print(Data.dataCount)
     db.close()
 
 exitGame = False
@@ -55,21 +59,6 @@ title = "Game Dev Idle"
 newGameTitle = "New Game"
 
 currGameData : Data = None
-
-def clear():
-    command = "clear"
-    if os.name in ("nt", "dos"):  # If Machine is running on Windows, use cls
-        command = "cls"
-
-    os.system(command)
-
-def printProgressBar(iteration, total, prefix="", suffix="", decimals=1, length=100, fill = "█", printEnd = "\r"):
-    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration/float(total)))
-    filledLength = int(length * iteration // total)
-    bar = fill * filledLength + "-" * (length - filledLength)
-    print("\r{} |{}| {}% {}".format(prefix, bar, percent, suffix), end=printEnd)
-    if iteration == total:
-        print()
 
 def doNothing():
     print("Doing nothing...")
@@ -100,9 +89,9 @@ def hireDev():
     print("Feature not implemented yet...")
 
 actions = {
-    "0": doNothing,
-    "1": developAGame,
-    "2": hireDev
+    "0": ["Do nothing", doNothing],
+    "1": ["Develop a game", developAGame],
+    "2": ["Hire developer", hireDev]
 }
 
 def newGame():
@@ -114,6 +103,7 @@ def newGame():
     except:
         gameData = []
     finally:
+        Data.dataCount = len(gameData)
         db.close()
 
     clear()
@@ -126,15 +116,21 @@ def newGame():
         print("{}{}".format(" "*length, title))
     print(separator)
     if currGameData is None:
-        playerName = input("What is your player name? ")
-        companyName = input("What is your company name? ")
+        playerName = inquirer.text(
+                message="What is your player name?"
+        ).execute()
+        companyName = inquirer.text(
+                message="What is your company name?"
+        ).execute()
         currGameData = Data(playerName, companyName)
     
     print("Player Name: {}".format(currGameData.getPlayerName()))
     print("Company Name: {}".format(currGameData.getCompanyName()))
     print("Cash: ${}".format(currGameData.getCash()))
+    print(separator)
     print("Number of Games Developed: {}".format(currGameData.getNumberOfGamesMade()))
     print("Number of Developers Hired: {}".format(currGameData.getNumberOfDevsHired()))
+    print(separator)
 
     continueQn = input("(Y/N) Continue playing? ")
     continueQn = continueQn.lower()
@@ -142,9 +138,13 @@ def newGame():
     if continueQn in ["y", "n"]:
         if continueQn == "y":
             print(separator)
-            print("0 - Do nothing")
-            print("1 - Develop a game")
-            print("2 - Hire more developers")
+            for key in actions:
+                value = actions[key]
+                label = value[0]
+
+                print("{} - {}".format(key, label))
+                #print(key, value)
+
             actionChoice = inquirer.text(
                 message="(Numbers only) What do you want to do?"
             ).execute()
@@ -154,13 +154,14 @@ def newGame():
             except:
                 actionChoice = 0
             
-            action = actions.get(str(actionChoice))
+            actionData = actions.get(str(actionChoice), None)
 
-            if action is not None:
+            if actionData is not None:
+                action = actionData[1]
+
                 action()
             else:
                 print("Action #{} has either not been properly implemented or it's invalid.".format(actionChoice))
-            # newGame()
         else:
             print("Data will be lost if you do not save!")
             toSave = input("(Y/N) Would you like to save? ")
@@ -177,11 +178,14 @@ def newGame():
                     except:
                         gameData = []
                     finally:
+                        print("Data Count: {}".format(Data.dataCount))
+                        print("Save Data ID: {}".format(saveData.getDataID()))
+
                         try:
                             gameData[saveData.getDataID()] = saveData
                         except:
                             gameData.append(saveData)
-                            
+                        
                         db["GameData"] = gameData
                         db.close()
 
@@ -199,6 +203,8 @@ def loadGame():
         gameData = []
     finally:
         db.close()
+
+    Data.dataCount = len(gameData)
     
     if len(gameData) > 0:
         print("Format: \"Save #Number - Player Name [Company Name]\"")
@@ -222,6 +228,9 @@ def loadGame():
             if saveFile is not None:
                 saveData = gameData[saveChoice] or None
                 currGameData = saveData
+
+                Data.dataCount = len(gameData)
+
                 print("Successfully loaded Save #{}".format(saveChoice))
                 time.sleep(1.5)
                 newGame()
@@ -265,22 +274,27 @@ def mainLoop():
 def bgLoop():
     global exitGame
 
+    maxTime = 30
+    timeSleep = 1.0
+
     while not exitGame:
         if exitGame:
             break
         
-        for i in range(30):
+        for i in range(maxTime):
             if exitGame:
                 break
 
-            time.sleep(1)
+            time.sleep(timeSleep)
 
-            if i == 59 and currGameData is not None:
+            if i >= maxTime - 1 and currGameData is not None:
                 noOfGames = currGameData.getNumberOfGamesMade()
                 cash = currGameData.getCash()
 
-                newCash = cash + (noOfGames * cashPerGame) + cashPerMin
+                cashGained = (noOfGames * cashPerGame) + cashPerMin
+                newCash = cash + cashGained
                 
+                print("Gained ${}!".format(cashGained))
                 currGameData.setCash(newCash)
 
 threads = []
